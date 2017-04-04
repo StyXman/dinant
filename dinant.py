@@ -141,8 +141,8 @@ def run_tests():
 if __name__ == '__main__':
     s = ' '.join(sys.argv[1:])
     # eat your own dog food
-    run_tests_re = bol + 'run' + _any('-_ ') + 'test' + maybe('s') + eol
-    g = re.compile(run_tests_re).match(s)
+    run_tests_re = re.compile(bol + 'run' + _any('-_ ') + 'test' + maybe('s') + eol)
+    g = run_tests_re.match(s)
     if g is not None:
         run_tests()
     else:
