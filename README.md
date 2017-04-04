@@ -1,3 +1,7 @@
+**NOTE**: This is not abandoned code, it's just that is so simple, it really
+doesn't need much maintenance. Still, any issues will be treated with due
+diligency.
+
 `dinant` is an attempt, like may others, to make regular expressions more
 readable, and, like many other, fails miserably... but we try anyways.
 
@@ -14,8 +18,17 @@ capture( one_or_more(_any('a-z')) ) + zero_or_more(then('[') + capture( zero_or_
 
 becomes `((?:[a-z])+)(?:\[((?:[a-z])*)\])*` and not `([a-z]+)(?:\[([a-z]*)\])*`.
 
+You might say that that expression is more difficult to read than a regular
+expression, and I half agree with you. You could split your expression in its
+components:
+
+    name = one_or_more(_any('a-z'))
+    key = zero_or_more(_any('a-z'))
+    subexp = ( capture(name, 'name') +
+               zero_or_more(then('[') + capture(key, 'key') + then(']')) )
+
 What about the name? It's a nice town in België/Belgique/Belgien that I plan to
 visit some time. It also could mean 'dinning person' in French[1], which makes
 sense, as I wrote this during dinner.
 
-[1] but the real word is dîneur.
+[1] but the real word is 'dîneur'.
