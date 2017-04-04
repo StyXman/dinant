@@ -27,6 +27,12 @@ components:
     subexp = ( capture(name, 'name') +
                zero_or_more(then('[') + capture(key, 'key') + then(']')) )
 
+If the module is run as a script, it will accept such an expression and print in
+`stdout` the generated regexp:
+
+    $ python3 -m dinant "bol + 'run' + _any('-_ ') + 'test' + maybe('s') + eol"
+    ^run[-_ ]test(?:s)?$
+
 What about the name? It's a nice town in België/Belgique/Belgien that I plan to
 visit some time. It also could mean 'dinning person' in French[1], which makes
 sense, as I wrote this during dinner.
