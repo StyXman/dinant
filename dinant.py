@@ -27,7 +27,7 @@ def lookahead(s):
 def neg_lookahead(s):
     return '(?!%s)' % s
 
-def lookbehiind(s):
+def lookbehind(s):
     return '(?<=%s)' % s
 
 def neg_lookbehind(s):
