@@ -71,7 +71,7 @@ def between(m, n, s, greedy=True):
 def exactly(n, s):
     return "%s{%d}" % (s, n)
 
-def test():
+def run_tests():
     def ass(x, y):
         try:
             assert x == y
@@ -118,4 +118,4 @@ def test():
         ('foo', 'bar', 'baz', 'quux'))
 
 if __name__ == '__main__':
-    test()
+    run_tests()
