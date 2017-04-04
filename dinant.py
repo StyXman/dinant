@@ -120,6 +120,24 @@ def run_tests():
     # ass(subexp.match('foo[bar][baz][quux]').groups(),
     #     ('foo', 'bar', 'baz', 'quux'))
 
+    ass(re.compile(capture(_any())).match('a').groups(), ('a', ))
+
+    ass(re.compile(capture(capture(_any(), name='foo') +
+                           backref('foo'))).match('aa').groups(), ('aa', 'a'))
+
+    ass(re.compile(capture(_any() + comment('foo'))).match('a').groups(), ('a', ))
+
+    ass(re.compile(capture('foo') + lookahead('bar')).match('foobar').groups(),
+        ('foo', ))
+
+    ass(re.compile(capture('foo') + neg_lookahead('bar')).match('foobaz').groups(),
+        ('foo', ))
+
+    # I don't understand this. it works, but don't know why
+    ass(re.compile(lookbehind('foo') + capture('bar')).search('foobar').groups(),
+        ('bar', ))
+
+
 if __name__ == '__main__':
     s = ' '.join(sys.argv[1:])
     # eat your own dog food
