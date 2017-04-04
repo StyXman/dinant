@@ -1,13 +1,13 @@
 import re
 import sys
 
-def _any(*args):
-    if len(args) == 0:
-        return '.'
-    elif len(args) == 1:
-        return '[%s]' % args[0]
-    else:
-        return '(?:%s)' % '|'.join(args)
+anything = '.'
+
+def any_of(s):
+    return '[%s]' % s
+
+def either(*args):
+    return '(?:%s)' % '|'.join(args)
 
 def capture(s, name=None):
     if name is None:
@@ -83,30 +83,30 @@ def run_tests():
     ass(then('a'), 'a')
     ass(then('[]'), '\[\]')
 
-    ass(re.compile(capture(_any('a-z'))).match('abc').groups(), ('a', ))
-    ass(re.compile(capture(zero_or_more(_any('a-z')))).match('abc').groups(), ('abc', ))
-    ass(re.compile(capture(zero_or_more(_any('a-z')))).match('').groups(), ('', ))
-    ass(re.compile(capture(one_or_more(_any('a-z')))).match(''), None)
-    ass(re.compile(capture(one_or_more(_any('a-z')))).match('a').groups(), ('a', ))
+    ass(re.compile(capture(any_of('a-z'))).match('abc').groups(), ('a', ))
+    ass(re.compile(capture(zero_or_more(any_of('a-z')))).match('abc').groups(), ('abc', ))
+    ass(re.compile(capture(zero_or_more(any_of('a-z')))).match('').groups(), ('', ))
+    ass(re.compile(capture(one_or_more(any_of('a-z')))).match(''), None)
+    ass(re.compile(capture(one_or_more(any_of('a-z')))).match('a').groups(), ('a', ))
 
-    ass(re.compile(capture(_any('abc', 'def'))).match('abc').groups(), ('abc', ))
-    ass(re.compile(capture(_any('abc', 'def'))).match('def').groups(), ('def', ))
+    ass(re.compile(capture(either('abc', 'def'))).match('abc').groups(), ('abc', ))
+    ass(re.compile(capture(either('abc', 'def'))).match('def').groups(), ('def', ))
 
-    ass(re.compile(capture(_any())).match('def').groups(), ('d', ))
+    ass(re.compile(capture(anything)).match('def').groups(), ('d', ))
 
-    ass(re.compile(bol+capture(_any())+eol).match('def'), None)
-    ass(re.compile(bol+capture(_any('abc', 'def'))+eol).match('def').groups(), ('def', ))
+    ass(re.compile(bol+capture(anything)+eol).match('def'), None)
+    ass(re.compile(bol+capture(either('abc', 'def'))+eol).match('def').groups(), ('def', ))
 
-    ass(re.compile(bol+capture(maybe('foo')+_any('bar', 'baz'))+eol).match('bar').groups(), ('bar', ))
-    ass(re.compile(bol+capture(maybe('foo')+_any('bar', 'baz'))+eol).match('foobaz').groups(), ('foobaz', ))
+    ass(re.compile(bol+capture(maybe('foo')+either('bar', 'baz'))+eol).match('bar').groups(), ('bar', ))
+    ass(re.compile(bol+capture(maybe('foo')+either('bar', 'baz'))+eol).match('foobaz').groups(), ('foobaz', ))
 
-    # ass(capture(one_or_more(_any('a-z')))+zero_or_more(then('[')+capture(one_or_more(_any('a-z')))+then(']')), '')
+    # ass(capture(one_or_more(any_of('a-z')))+zero_or_more(then('[')+capture(one_or_more(any_of('a-z')))+then(']')), '')
     # '((?:[a-z])+)(?:[((?:[a-z])+)])*'
     #  ((?:[a-z])+)(?:[((?:[a-z])+)])*
     #  ([a-z]+)(?:[([a-z]+)])*
 
-    name = one_or_more(_any('a-z'))
-    key = zero_or_more(_any('a-z'))
+    name = one_or_more(any_of('a-z'))
+    key = zero_or_more(any_of('a-z'))
     subexp = re.compile( capture(name) +
                          zero_or_more(then('[') + capture( key ) + then(']')) )
 
@@ -120,12 +120,12 @@ def run_tests():
     # ass(subexp.match('foo[bar][baz][quux]').groups(),
     #     ('foo', 'bar', 'baz', 'quux'))
 
-    ass(re.compile(capture(_any())).match('a').groups(), ('a', ))
+    ass(re.compile(capture(anything)).match('a').groups(), ('a', ))
 
-    ass(re.compile(capture(capture(_any(), name='foo') +
+    ass(re.compile(capture(capture(anything, name='foo') +
                            backref('foo'))).match('aa').groups(), ('aa', 'a'))
 
-    ass(re.compile(capture(_any() + comment('foo'))).match('a').groups(), ('a', ))
+    ass(re.compile(capture(anything + comment('foo'))).match('a').groups(), ('a', ))
 
     ass(re.compile(capture('foo') + lookahead('bar')).match('foobar').groups(),
         ('foo', ))
@@ -141,7 +141,7 @@ def run_tests():
 if __name__ == '__main__':
     s = ' '.join(sys.argv[1:])
     # eat your own dog food
-    run_tests_re = re.compile(bol + 'run' + _any('-_ ') + 'test' + maybe('s') + eol)
+    run_tests_re = re.compile(bol + 'run' + any_of('-_ ') + 'test' + maybe('s') + eol)
     g = run_tests_re.match(s)
     if g is not None:
         run_tests()
