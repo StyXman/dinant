@@ -57,8 +57,8 @@ def then(s):
 bol = '^'
 eol = '$'
 
-def _not(s):
-    return '^'+s
+def none_of(s):
+    return '[^%s]' % s
 
 def exactly(n, s):
     return "%s{%d}" % (s, n)
