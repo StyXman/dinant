@@ -8,8 +8,29 @@ def _any(*args):
     else:
         return '(?:%s)' % '|'.join(args)
 
-def capture(s):
-    return '(%s)' % s
+def capture(s, name=None):
+    if name is None:
+        return '(%s)' % s
+    else:
+        return '(?P<%s>%s)' % (name, s)
+
+def backref(name):
+    return '(?P=%s)' % name
+
+def comment(text):
+    return '(?# %s )' % text
+
+def lookahead(s):
+    return '(?=%s)' % s
+
+def neg_lookahead(s):
+    return '(?!%s)' % s
+
+def lookbehiind(s):
+    return '(?<=%s)' % s
+
+def neg_lookbehind(s):
+    return '(?<!%s)' % s
 
 def one_or_more(s, greedy=True):
     result = '(?:%s)+' % s
