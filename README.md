@@ -8,7 +8,7 @@ because it doesn't even attempt to, it does not makes any optimizations, and
 resulting regexps can be more complex to read and less efficient. But the idea
 is that you would never see them again.
 
-What about the name? it'a nice town in België/Belgique/Belgien that I plan to
+What about the name? It's a nice town in België/Belgique/Belgien that I plan to
 visit some time. It also could mean 'dinning person' in French[1], which makes
 sense, as I wrote this during dinner.
 
