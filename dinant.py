@@ -34,19 +34,19 @@ def neg_lookbehind(s):
 
 def one_or_more(s, greedy=True):
     result = '(?:%s)+' % s
-    if greedy:
+    if not greedy:
         result += '?'
     return result
 
 def zero_or_more(s, greedy=True):
     result = '(?:%s)*' % s
-    if greedy:
+    if not greedy:
         result += '?'
     return result
 
 def maybe(s, greedy=True):
     result = '(?:%s)?' % s
-    if greedy:
+    if not greedy:
         result += '?'
     return result
 
