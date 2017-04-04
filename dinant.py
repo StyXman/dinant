@@ -1,4 +1,5 @@
 import re
+import sys
 
 def _any(*args):
     if len(args) == 0:
@@ -118,4 +119,11 @@ def run_tests():
         ('foo', 'bar', 'baz', 'quux'))
 
 if __name__ == '__main__':
-    run_tests()
+    s = ' '.join(sys.argv[1:])
+    # eat your own dog food
+    run_tests_re = bol + 'run' + _any('-_ ') + 'test' + maybe('s') + eol
+    g = re.compile(run_tests_re).match(s)
+    if g is not None:
+        run_tests()
+    else:
+        print(eval(s))
