@@ -104,17 +104,17 @@ def run_tests():
     #  ((?:[a-z])+)(?:[((?:[a-z])+)])*
     #  ([a-z]+)(?:[([a-z]+)])*
 
-    foo = ( capture( one_or_more(_any('a-z')) ) +
-            zero_or_more(then('[') +
-                         capture( zero_or_more(_any('a-z')) ) +
-                         then(']')) )
+    name = one_or_more(_any('a-z'))
+    key = zero_or_more(_any('a-z'))
+    subexp = re.compile( capture(name) +
+                         zero_or_more(then('[') + capture( key ) + then(']')) )
 
-    ass(re.compile(foo).match('foo').groups(), ('foo', None))
-    ass(re.compile(foo).match('foo[]').groups(), ('foo', ''))
-    ass(re.compile(foo).match('foo[bar]').groups(), ('foo', 'bar'))
-    ass(re.compile(foo).match('foo[bar][]').groups(), ('foo', 'bar'))
-    # ass(re.compile(foo).match('foo[bar][baz]').groups(), ('foo', 'bar', 'baz'))
-    ass(re.compile(foo).match('foo[bar][baz][quux]').groups(),
+    ass(subexp.match('foo').groups(), ('foo', None))
+    ass(subexp.match('foo[]').groups(), ('foo', ''))
+    ass(subexp.match('foo[bar]').groups(), ('foo', 'bar'))
+    ass(subexp.match('foo[bar][]').groups(), ('foo', 'bar'))
+    # ass(subexp.match('foo[bar][baz]').groups(), ('foo', 'bar', 'baz'))
+    ass(subexp.match('foo[bar][baz][quux]').groups(),
         ('foo', 'bar', 'baz', 'quux'))
 
 if __name__ == '__main__':
