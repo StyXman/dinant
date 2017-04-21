@@ -165,6 +165,7 @@ def run_tests():
     test(float, '-.736', ('-.736', ))
     test(float, '.736', ('.736', ))
 
+    print('A-OK!')
 
 if __name__ == '__main__':
     s = ' '.join(sys.argv[1:])
