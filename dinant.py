@@ -80,19 +80,26 @@ def run_tests():
             print("%r != %r" % (x, y))
             raise
 
+    def test(regexp, src, dst):
+        try:
+            ass(re.compile(capture(regexp)).match(src).groups(), dst)
+        except AssertionError:
+            print(regexp)
+            raise
+
     ass(then('a'), 'a')
     ass(then('[]'), '\[\]')
 
     ass(re.compile(capture(any_of('a-z'))).match('abc').groups(), ('a', ))
-    ass(re.compile(capture(zero_or_more(any_of('a-z')))).match('abc').groups(), ('abc', ))
-    ass(re.compile(capture(zero_or_more(any_of('a-z')))).match('').groups(), ('', ))
+    test(zero_or_more(any_of('a-z')), 'abc', ('abc', ))
+    test(zero_or_more(any_of('a-z')), '', ('', ))
     ass(re.compile(capture(one_or_more(any_of('a-z')))).match(''), None)
-    ass(re.compile(capture(one_or_more(any_of('a-z')))).match('a').groups(), ('a', ))
+    test(one_or_more(any_of('a-z')), 'a', ('a', ))
 
-    ass(re.compile(capture(either('abc', 'def'))).match('abc').groups(), ('abc', ))
-    ass(re.compile(capture(either('abc', 'def'))).match('def').groups(), ('def', ))
+    test(either('abc', 'def'), 'abc', ('abc', ))
+    test(either('abc', 'def'), 'def', ('def', ))
 
-    ass(re.compile(capture(anything)).match('def').groups(), ('d', ))
+    test(anything, 'def', ('d', ))
 
     ass(re.compile(bol+capture(anything)+eol).match('def'), None)
     ass(re.compile(bol+capture(either('abc', 'def'))+eol).match('def').groups(), ('def', ))
@@ -120,12 +127,12 @@ def run_tests():
     # ass(subexp.match('foo[bar][baz][quux]').groups(),
     #     ('foo', 'bar', 'baz', 'quux'))
 
-    ass(re.compile(capture(anything)).match('a').groups(), ('a', ))
+    test(anything, 'a', ('a', ))
 
     ass(re.compile(capture(capture(anything, name='foo') +
                            backref('foo'))).match('aa').groups(), ('aa', 'a'))
 
-    ass(re.compile(capture(anything + comment('foo'))).match('a').groups(), ('a', ))
+    test(anything + comment('foo'), 'a', ('a', ))
 
     ass(re.compile(capture('foo') + lookahead('bar')).match('foobar').groups(),
         ('foo', ))
