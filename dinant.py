@@ -72,6 +72,14 @@ def between(m, n, s, greedy=True):
 def exactly(n, s):
     return "%s{%d}" % (s, n)
 
+# useful shit
+digit = '\d'
+digits = digit
+int = maybe('-') + one_or_more(digits)
+integer = int
+# the order is important or the regexp stops at the first match
+float = either(maybe('-') + maybe(one_or_more(digits)) + then('.') + one_or_more(digits), integer + then('.'), integer)
+
 def run_tests():
     def ass(x, y):
         try:
@@ -143,6 +151,17 @@ def run_tests():
     # I don't understand this. it works, but don't know why
     ass(re.compile(lookbehind('foo') + capture('bar')).search('foobar').groups(),
         ('bar', ))
+
+    test(integer, '1942', ('1942', ))
+    test(integer, '-1942', ('-1942', ))
+
+    test(float, '1942', ('1942', ))
+    test(float, '-1942', ('-1942', ))
+    # -?\d+ | -?\d+\. | (?:-)?(?:(?:\d)+)?\.(?:\d)+
+    test(float, '-1942.', ('-1942.', ))
+    test(float, '-1942.736', ('-1942.736', ))
+    test(float, '-.736', ('-.736', ))
+    test(float, '.736', ('.736', ))
 
 
 if __name__ == '__main__':
