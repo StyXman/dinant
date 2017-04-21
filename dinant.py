@@ -88,9 +88,15 @@ def run_tests():
             print("%r != %r" % (x, y))
             raise
 
-    def test(regexp, src, dst):
+    def test(regexp, src, dst, capt=True):
         try:
-            ass(re.compile(capture(regexp)).match(src).groups(), dst)
+            if (regexp[0] != '(' or regexp[:3] == '(?:') and capt:
+                regexp = capture(regexp)
+
+            if dst is not None:
+                ass(re.compile(regexp).match(src).groups(), dst)
+            else:
+                ass(re.compile(regexp).match(src), dst)
         except AssertionError:
             print(regexp)
             raise
@@ -98,10 +104,10 @@ def run_tests():
     ass(then('a'), 'a')
     ass(then('[]'), '\[\]')
 
-    ass(re.compile(capture(any_of('a-z'))).match('abc').groups(), ('a', ))
+    test(any_of('a-z'), 'abc', ('a', ))
     test(zero_or_more(any_of('a-z')), 'abc', ('abc', ))
     test(zero_or_more(any_of('a-z')), '', ('', ))
-    ass(re.compile(capture(one_or_more(any_of('a-z')))).match(''), None)
+    test(one_or_more(any_of('a-z')), '', None)
     test(one_or_more(any_of('a-z')), 'a', ('a', ))
 
     test(either('abc', 'def'), 'abc', ('abc', ))
@@ -109,11 +115,11 @@ def run_tests():
 
     test(anything, 'def', ('d', ))
 
-    ass(re.compile(bol+capture(anything)+eol).match('def'), None)
-    ass(re.compile(bol+capture(either('abc', 'def'))+eol).match('def').groups(), ('def', ))
+    test(bol+capture(anything)+eol, 'def', None, False)
+    test(bol+capture(either('abc', 'def'))+eol, 'def', ('def', ), False)
 
-    ass(re.compile(bol+capture(maybe('foo')+either('bar', 'baz'))+eol).match('bar').groups(), ('bar', ))
-    ass(re.compile(bol+capture(maybe('foo')+either('bar', 'baz'))+eol).match('foobaz').groups(), ('foobaz', ))
+    test(bol+capture(maybe('foo')+either('bar', 'baz'))+eol, 'bar', ('bar', ), False)
+    test(bol+capture(maybe('foo')+either('bar', 'baz'))+eol, 'foobaz', ('foobaz', ), False)
 
     # ass(capture(one_or_more(any_of('a-z')))+zero_or_more(then('[')+capture(one_or_more(any_of('a-z')))+then(']')), '')
     # '((?:[a-z])+)(?:[((?:[a-z])+)])*'
@@ -122,31 +128,27 @@ def run_tests():
 
     name = one_or_more(any_of('a-z'))
     key = zero_or_more(any_of('a-z'))
-    subexp = re.compile( capture(name) +
-                         zero_or_more(then('[') + capture( key ) + then(']')) )
+    subexp = capture(name) + zero_or_more(then('[') + capture( key ) + then(']'))
 
     # some of these fail because of this:
     # https://stackoverflow.com/questions/9764930/capturing-repeating-subpatterns-in-python-regex/9765390#9765390
-    ass(subexp.match('foo').groups(), ('foo', None))
-    ass(subexp.match('foo[]').groups(), ('foo', ''))
-    ass(subexp.match('foo[bar]').groups(), ('foo', 'bar'))
-    # ass(subexp.match('foo[bar][]').groups(), ('foo', 'bar'))
-    # ass(subexp.match('foo[bar][baz]').groups(), ('foo', 'bar', 'baz'))
+    test(subexp, 'foo', ('foo', None))
+    test(subexp, 'foo[]', ('foo', ''))
+    test(subexp, 'foo[bar]', ('foo', 'bar'))
+    # test(subexp, 'foo[bar][]', ('foo', 'bar'))
+    # test(subexp, 'foo[bar][baz]', ('foo', 'bar', 'baz'))
     # ass(subexp.match('foo[bar][baz][quux]').groups(),
     #     ('foo', 'bar', 'baz', 'quux'))
 
     test(anything, 'a', ('a', ))
 
-    ass(re.compile(capture(capture(anything, name='foo') +
-                           backref('foo'))).match('aa').groups(), ('aa', 'a'))
+    test(capture(capture(anything, name='foo') + backref('foo')), 'aa', ('aa', 'a'))
 
     test(anything + comment('foo'), 'a', ('a', ))
 
-    ass(re.compile(capture('foo') + lookahead('bar')).match('foobar').groups(),
-        ('foo', ))
+    test(capture('foo') + lookahead('bar'), 'foobar', ('foo', ))
 
-    ass(re.compile(capture('foo') + neg_lookahead('bar')).match('foobaz').groups(),
-        ('foo', ))
+    test(capture('foo') + neg_lookahead('bar'), 'foobaz', ('foo', ))
 
     # I don't understand this. it works, but don't know why
     ass(re.compile(lookbehind('foo') + capture('bar')).search('foobar').groups(),
