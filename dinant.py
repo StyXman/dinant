@@ -140,7 +140,7 @@ def run_tests():
                 ass(re.compile(regexp).match(src).groups(), dst)
             else:
                 ass(re.compile(regexp).match(src), dst)
-        except AssertionError:
+        except:
             print(regexp)
             raise
 
