@@ -69,9 +69,6 @@ def between(m, n, s, greedy=True):
         result += '?'
     return result
 
-def exactly(n, s):
-    return "%s{%d}" % (s, n)
-
 
 # useful shit
 digit = '\d'
