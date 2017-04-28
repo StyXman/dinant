@@ -80,6 +80,47 @@ integer = int
 # the order is important or the regexp stops at the first match
 float = either(maybe('-') + maybe(one_or_more(digits)) + then('.') + one_or_more(digits), integer + then('.'), integer)
 
+# none of these regexps do any value checking (%H between 00-23, etc)
+__dt_format_to_re = {
+    '%a': one_or_more(anything, greedy=False),  # TODO: this is not really specific
+    '%A': one_or_more(anything, greedy=False),  # TODO: this is not really specific
+    '%b': one_or_more(anything, greedy=False),  # TODO: this is not really specific
+    '%B': one_or_more(anything, greedy=False),  # TODO: this is not really specific
+    '%d': exactly(2, digits),
+    '%H': exactly(2, digits),
+    '%I': exactly(2, digits),
+    '%j': exactly(3, digits),
+    '%m': exactly(2, digits),
+    '%M': exactly(2, digits),
+    '%p': one_or_more(anything, greedy=False),  # TODO: this is not really specific
+    '%S': exactly(2, digits),
+    '%U': exactly(2, digits),
+    '%w': digit,
+    '%W': exactly(2, digits),
+    '%y': exactly(2, digits),
+    '%Y': exactly(4, digits),
+    '%z': either('+', '-') + exactly(4, digits),
+    '%%': '%',
+    }
+
+# date/time
+def datetime(s=None):
+    # NOTE: this must be kept in sync with
+    # https://docs.python.org/3/library/time.html#time.strptime
+    if s is None:
+        s = "%a %b %d %H:%M:%S %Y"
+
+    for fmt in ('%c', '%x', '%X'):
+        if fmt in s:
+            raise ValueError('%r not supported.' % fmt)
+
+    # TODO: support escaped %%a
+    for fmt, regexp in __dt_format_to_re.items():
+        s = s.replace(fmt, regexp)
+
+    return s
+
+
 def run_tests():
     def ass(x, y):
         try:
@@ -164,6 +205,9 @@ def run_tests():
     test(float, '-1942.736', ('-1942.736', ))
     test(float, '-.736', ('-.736', ))
     test(float, '.736', ('.736', ))
+
+    test(datetime(), 'Fri Apr 28 13:34:19 2017', ('Fri Apr 28 13:34:19 2017', ))
+    test(datetime('%b %d %H:%M:%S'), 'Apr 28 13:34:19', ('Apr 28 13:34:19', ))
 
     print('A-OK!')
 
