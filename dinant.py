@@ -65,12 +65,13 @@ def exactly(n, s):
 
 def between(m, n, s, greedy=True):
     result = "%s{%d,%d}" % (s, m, n)
-    if greedy:
+    if not greedy:
         result += '?'
     return result
 
 def exactly(n, s):
     return "%s{%d}" % (s, n)
+
 
 # useful shit
 digit = '\d'
