@@ -120,6 +120,16 @@ def datetime(s=None):
 
     return s
 
+# TODO: support the real vales
+IPv4 = ( between(1, 3, digits) + then('.') +
+         between(1, 3, digits) + then('.') +
+         between(1, 3, digits) + then('.') +
+         between(1, 3, digits) )
+
+IP_number = either(IPv4)  # TODO IPv6
+
+IP_port = IP_number + then(':') + integer
+
 
 def run_tests():
     def ass(x, y):
@@ -208,6 +218,9 @@ def run_tests():
 
     test(datetime(), 'Fri Apr 28 13:34:19 2017', ('Fri Apr 28 13:34:19 2017', ))
     test(datetime('%b %d %H:%M:%S'), 'Apr 28 13:34:19', ('Apr 28 13:34:19', ))
+
+    test(IP_number, '10.33.1.53', ('10.33.1.53', ))
+    test(IP_port, '10.33.1.53:60928', ('10.33.1.53:60928', ))
 
     print('A-OK!')
 
