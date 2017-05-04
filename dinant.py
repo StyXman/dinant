@@ -339,6 +339,37 @@ def run_tests():
     test(IP_number, '10.33.1.53', ('10.33.1.53', ))
     test(IP_port, '10.33.1.53:60928', ('10.33.1.53:60928', ))
 
+
+    # real life examples
+    def timestamp_re(capt=True):
+        if capt:
+            regexp = then('[') + capture(datetime("%b %d %H:%M:%S"), name='timestamp') + then(']')
+        else:
+            regexp = then('[') + datetime("%b %d %H:%M:%S") + then(']')
+
+        return regexp
+
+    line_re = bol + timestamp_re() + then(' ')
+
+    pid_re =  then('[') + integer + then(']')
+
+    def call_id_re(capt=True, name=None):
+        if capt:
+            result = '[C-' + one_or_more(any_of('0-9a-f')) + ']'
+        else:
+            assert name is not None
+            result = '[C-' + capture(one_or_more(any_of('0-9a-f')), name=name) + ']'
+
+        return result
+
+    call_re = ( line_re + either('VERBOSE') + pid_re + call_id_re(capt=True, name='call_id') + ' ' +
+                one_or_more(any_of('a-z_\.')) + ': ' + timestamp_re(capt=False) + ' ' )
+
+    line = '[Apr 27 07:01:27] VERBOSE[4023][C-0005da36] chan_sip.c: [Apr 27 07:01:27] Sending to 85.31.193.194:5060 (no NAT)'
+
+    test(call_re, line, ('[Apr 27 07:01:27] VERBOSE[4023][C-0005da36] chan_sip.c: [Apr 27 07:01:27] ', 'Apr 27 07:01:27'))
+
+
     print('A-OK!')
 
 
