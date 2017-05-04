@@ -2,78 +2,182 @@
 
 import re
 import sys
+import copy
 
-anything = '.'
+class Dinant:
+    # TODO: *others, should help fixing either()
+    def __init__(self, other, escape=True):
+        if isinstance(other, str):
+            if escape:
+                self.strings = [ re.escape(other) ]
+            else:
+                self.strings = [ other ]
+        else:
+            # Dinant(Dinant('a')) == Dinant('a') but
+            # id(Dinant('a')) != id(Dinant('a'))
+            self.strings = copy.copy(other.strings)
+
+        self.groups = None
+        # caches
+        self.expression = None
+        self.compiled = None
+
+
+    def __add__(self, other):
+        result = Dinant(self)
+
+        if isinstance(other, str):
+            result.strings.append(re.escape(other))
+        else:
+            result.strings.extend(other.strings)
+
+        return result
+
+
+    def __radd__(self, other):
+        result = Dinant(self)
+
+        if isinstance(other, str):
+            # faster than result.strings.insert(0, re.escape(other))
+            # and [ re.escape(other) ]+self.strings creates another list besides [ re.escape(other) ]
+            result.strings = [ re.escape(other) ]
+            result.strings.extend(self.strings)
+        else:
+            raise ValueError('str expected, got %r')
+
+        return result
+
+
+    def __str__(self):
+        if self.expression is None:
+            # compact
+            self.expression = ''.join(self.strings)
+
+        return self.expression
+
+
+    def __repr__(self):
+        return 'Dinant%r' % self.strings
+
+
+    def matches(self, s):
+        if self.compiled is None:
+            self.compiled = re.compile(str(self))
+
+        self.groups = self.compiled.match(s)
+
+        return self.groups is not None
+
+
+    def __getitem__(self, index):
+        if self.expression is None:
+            self.expression = ''.join(self.strings)
+
+        return self.expression[index]
+
+
+    def match(self, s):
+        if self.compiled is None:
+            self.compiled = re.compile(str(self))
+
+        return self.compiled.match(s)
+
+
+    def __eq__(self, other):
+        return self.strings == other.strings
+
+
+    def search(self, s):
+        if self.compiled is None:
+            self.compiled = re.compile(str(self))
+
+        return self.compiled.search(s)
+
+
+anything = Dinant('.', escape=False)
+
+def wrap(left, middle, right):
+    # this is a common structure used below
+    return Dinant(left, escape=False) + middle + Dinant(right, escape=False)
+
 
 def any_of(s):
-    return '[%s]' % s
+    """s must be in the right format.
+    See https://docs.python.org/3/library/re.html#regular-expression-syntax ."""
+    return wrap('[', Dinant(s, escape=False), ']')
 
 def either(*args):
-    return '(?:%s)' % '|'.join(args)
+    # TODO: this is the only point where we pre compact
+    return ( wrap('(?:', Dinant('|'.join([ str(s) for s in args ]), escape=False), ')') )
 
 def capture(s, name=None):
     if name is None:
-        return '(%s)' % s
+        return wrap('(', Dinant(s), ')')
     else:
-        return '(?P<%s>%s)' % (name, s)
+        return wrap('(?P', wrap('<', name, '>',) + Dinant(s), ')')
 
 def backref(name):
-    return '(?P=%s)' % name
+    return wrap('(?P=', Dinant(name), ')')
 
 def comment(text):
-    return '(?# %s )' % text
+    return wrap('(?# ', Dinant(text), ' )')
 
 def lookahead(s):
-    return '(?=%s)' % s
+    return wrap('(?=', Dinant(s), ')')
 
 def neg_lookahead(s):
-    return '(?!%s)' % s
+    return wrap('(?!', Dinant(s), ')')
 
 def lookbehind(s):
-    return '(?<=%s)' % s
+    return wrap('(?<=', Dinant(s), ')')
 
 def neg_lookbehind(s):
-    return '(?<!%s)' % s
+    return wrap('(?<!', Dinant(s), ')')
 
+# TODO: make these check lengths and use (?:...) only if > 1
 def one_or_more(s, greedy=True):
-    result = '(?:%s)+' % s
+    result = wrap('(?:', Dinant(s), ')+')
     if not greedy:
-        result += '?'
+        result += Dinant('?', escape=False)
+
     return result
 
 def zero_or_more(s, greedy=True):
-    result = '(?:%s)*' % s
+    result = wrap('(?:', Dinant(s), ')*')
     if not greedy:
-        result += '?'
+        result += Dinant('?', escape=False)
+
     return result
 
 def maybe(s, greedy=True):
-    result = '(?:%s)?' % s
+    result = wrap('(?:', Dinant(s), ')?')
     if not greedy:
-        result += '?'
+        result += Dinant('?', escape=False)
+
     return result
 
 def then(s):
-    return re.escape(s)
+    return Dinant(s)
 
-bol = '^'
-eol = '$'
+bol = Dinant('^', escape=False)
+eol = Dinant('$', escape=False)
 
 def none_of(s):
-    return '[^%s]' % s
+    return wrap('[^', Dinant(s), ']')
 
 def exactly(n, s):
-    return "%s{%d}" % (s, n)
+    return s + wrap('{', str(n), '}')
 
 def between(m, n, s, greedy=True):
-    result = "%s{%d,%d}" % (s, m, n)
+    result =  s + wrap('{', Dinant("%d,%d" % (m, n), escape=False), '}')
     if not greedy:
         result += '?'
+
     return result
 
 
 # useful shit
-digit = '\d'
+digit = Dinant('\d', escape=False)
 digits = digit
 int = maybe('-') + one_or_more(digits)
 integer = int
@@ -104,21 +208,19 @@ __dt_format_to_re = {
     }
 
 # date/time
-def datetime(s=None):
-    # NOTE: this must be kept in sync with
-    # https://docs.python.org/3/library/time.html#time.strptime
-    if s is None:
-        s = "%a %b %d %H:%M:%S %Y"
-
+# NOTE: this must be kept in sync with
+# https://docs.python.org/3/library/time.html#time.strptime
+def datetime(s="%a %b %d %H:%M:%S %Y"):
     for fmt in ('%c', '%x', '%X'):
         if fmt in s:
             raise ValueError('%r not supported.' % fmt)
 
     # TODO: support escaped %%a
     for fmt, regexp in __dt_format_to_re.items():
-        s = s.replace(fmt, regexp)
+        # another instance of pre compacting
+        s = s.replace(fmt, str(regexp))
 
-    return s
+    return Dinant(s, escape=False)
 
 # TODO: support the real vales
 IPv4 = ( between(1, 3, digits) + then('.') +
@@ -132,7 +234,7 @@ IP_port = IP_number + then(':') + integer
 
 
 def run_tests():
-    def ass(x, y):
+    def ass(x, y=True):
         try:
             assert x == y
         except AssertionError:
@@ -145,15 +247,17 @@ def run_tests():
                 regexp = capture(regexp)
 
             if dst is not None:
-                ass(re.compile(regexp).match(src).groups(), dst)
+                ass(regexp.match(src).groups(), dst)
             else:
-                ass(re.compile(regexp).match(src), dst)
+                assert regexp.match(src) is None
         except:
             print(regexp)
             raise
 
-    ass(then('a'), 'a')
-    ass(then('[]'), '\[\]')
+    ass(str(Dinant('a')), 'a')
+
+    ass(str(then('a')), 'a')
+    ass(str(then('[]')), '\[\]')
 
     test(any_of('a-z'), 'abc', ('a', ))
     test(zero_or_more(any_of('a-z')), 'abc', ('abc', ))
@@ -202,8 +306,7 @@ def run_tests():
     test(capture('foo') + neg_lookahead('bar'), 'foobaz', ('foo', ))
 
     # I don't understand this. it works, but don't know why
-    ass(re.compile(lookbehind('foo') + capture('bar')).search('foobar').groups(),
-        ('bar', ))
+    ass((lookbehind('foo') + capture('bar')).search('foobar').groups(), ('bar', ))
 
     test(integer, '1942', ('1942', ))
     test(integer, '-1942', ('-1942', ))
@@ -224,12 +327,15 @@ def run_tests():
 
     print('A-OK!')
 
+
 if __name__ == '__main__':
     s = ' '.join(sys.argv[1:])
     # eat your own dog food
-    run_tests_re = re.compile(bol + 'run' + any_of('-_ ') + 'test' + maybe('s') + eol)
-    g = run_tests_re.match(s)
-    if g is not None:
+    run_tests_re = bol + 'run' + any_of('-_ ') + 'test' + maybe('s') + eol
+    if run_tests_re.matches(s):
         run_tests()
     else:
         print(eval(s))
+
+
+del run_tests
