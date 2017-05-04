@@ -265,6 +265,7 @@ def run_tests():
                 assert not regexp.matches(src)
         except:
             print(regexp)
+            print(src)
             raise
 
     ass(str(Dinant('a')), 'a')
