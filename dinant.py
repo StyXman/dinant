@@ -235,14 +235,14 @@ def datetime(s="%a %b %d %H:%M:%S %Y"):
     return Dinant(s, escape=False)
 
 # TODO: support the real vales
-IPv4 = ( between(1, 3, digits) + then('.') +
-         between(1, 3, digits) + then('.') +
-         between(1, 3, digits) + then('.') +
+IPv4 = ( between(1, 3, digits) + '.' +
+         between(1, 3, digits) + '.' +
+         between(1, 3, digits) + '.' +
          between(1, 3, digits) )
 
 IP_number = either(IPv4)  # TODO IPv6
 
-IP_port = IP_number + then(':') + integer
+IP_port = IP_number + ':' + integer
 
 
 def run_tests():
