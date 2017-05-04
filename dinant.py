@@ -17,7 +17,6 @@ class Dinant:
             # id(Dinant('a')) != id(Dinant('a'))
             self.strings = copy.copy(other.strings)
 
-        self.groups = None
         # caches
         self.expression = None
         self.compiled = None
@@ -64,9 +63,9 @@ class Dinant:
         if self.compiled is None:
             self.compiled = re.compile(str(self))
 
-        self.groups = self.compiled.match(s)
+        self.g = self.compiled.match(s)
 
-        return self.groups is not None
+        return self.g is not None
 
 
     def __getitem__(self, index):
@@ -92,6 +91,19 @@ class Dinant:
             self.compiled = re.compile(str(self))
 
         return self.compiled.search(s)
+
+    def groups(self):
+        if not hasattr(self, 'g'):
+            raise ValueError('''This regular expression hasn't matched anything yet.''')
+
+        return self.g.groups()
+
+
+    def group(self, *args):
+        if not hasattr(self, 'g'):
+            raise ValueError('''This regular expression hasn't matched anything yet.''')
+
+        return self.g.group(*args)
 
 
 anything = Dinant('.', escape=False)
@@ -247,9 +259,10 @@ def run_tests():
                 regexp = capture(regexp)
 
             if dst is not None:
-                ass(regexp.match(src).groups(), dst)
+                ass(regexp.matches(src))
+                ass(regexp.groups(), dst)
             else:
-                assert regexp.match(src) is None
+                assert not regexp.matches(src)
         except:
             print(regexp)
             raise
