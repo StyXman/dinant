@@ -118,9 +118,11 @@ def any_of(s):
     See https://docs.python.org/3/library/re.html#regular-expression-syntax ."""
     return wrap('[', Dinant(s, escape=False), ']')
 
+
 def either(*args):
     # TODO: this is the only point where we pre compact
-    return ( wrap('(?:', Dinant('|'.join([ str(s) for s in args ]), escape=False), ')') )
+    return ( wrap('(?:', Dinant('|'.join([ str(Dinant(s) if isinstance(s, str) else s) for s in args ]), escape=False), ')') )
+
 
 def capture(s, name=None):
     if name is None:
