@@ -353,6 +353,15 @@ def run_tests():
 
     line_re = bol + timestamp_re() + then(' ')
 
+    begin_SIP_message_re = ( line_re + then('<--- ') +
+                            either('SIP read from UDP:', 'Transmitting (no NAT) to ') +
+                            capture(IP_port, name='client') + then(' --->') )
+
+    line = '[Apr 27 06:25:21] <--- Transmitting (no NAT) to 85.31.193.210:5060 --->'
+    test(begin_SIP_message_re, line, ('[Apr 27 06:25:21] <--- Transmitting (no NAT) to 85.31.193.210:5060 --->',
+                                      'Apr 27 06:25:21', '85.31.193.210:5060'))
+
+    # another
     pid_re =  then('[') + integer + then(']')
 
     def call_id_re(capt=True, name=None):
