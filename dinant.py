@@ -197,6 +197,8 @@ int = maybe('-') + one_or_more(digits)
 integer = int
 # the order is important or the regexp stops at the first match
 float = either(maybe('-') + maybe(one_or_more(digits)) + then('.') + one_or_more(digits), integer + then('.'), integer)
+hex = one_or_more(any_of('0-9A-Fa-f'))
+hexa = hex
 
 # none of these regexps do any value checking (%H between 00-23, etc)
 __dt_format_to_re = {
