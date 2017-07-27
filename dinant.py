@@ -197,7 +197,8 @@ def between(m, n, s, greedy=True):
 # useful shit
 digit = Dinant('\d', escape=False)
 digits = digit
-int = maybe('-') + one_or_more(digits)
+uint = one_or_more(digits)
+int = maybe('-') + uint
 integer = int
 # NOTE: the order is important or the regexp stops at the first match
 float = either(maybe('-') + maybe(one_or_more(digits)) + then('.') + one_or_more(digits), integer + then('.'), integer)
