@@ -76,6 +76,7 @@ class Dinant:
 
 
     def match(self, s):
+        """For compatibility with the `re` module."""
         if self.compiled is None:
             self.compiled = re.compile(str(self))
 
@@ -92,6 +93,7 @@ class Dinant:
 
         return self.compiled.search(s)
 
+
     def groups(self):
         if not hasattr(self, 'g'):
             raise ValueError('''This regular expression hasn't matched anything yet.''')
@@ -107,6 +109,7 @@ class Dinant:
 
 
 anything = Dinant('.', escape=False)
+
 
 def wrap(left, middle, right):
     # this is a common structure used below
@@ -129,6 +132,7 @@ def capture(s, name=None):
         return wrap('(', Dinant(s), ')')
     else:
         return wrap('(?P', wrap('<', name, '>',) + Dinant(s), ')')
+
 
 def backref(name):
     return wrap('(?P=', Dinant(name), ')')
@@ -195,12 +199,12 @@ digit = Dinant('\d', escape=False)
 digits = digit
 int = maybe('-') + one_or_more(digits)
 integer = int
-# the order is important or the regexp stops at the first match
+# NOTE: the order is important or the regexp stops at the first match
 float = either(maybe('-') + maybe(one_or_more(digits)) + then('.') + one_or_more(digits), integer + then('.'), integer)
 hex = one_or_more(any_of('0-9A-Fa-f'))
 hexa = hex
 
-# none of these regexps do any value checking (%H between 00-23, etc)
+# NOTE: none of these regexps do any value checking (%H between 00-23, etc)
 __dt_format_to_re = {
     '%a': one_or_more(anything, greedy=False),  # TODO: this is not really specific
     '%A': one_or_more(anything, greedy=False),  # TODO: this is not really specific
@@ -361,9 +365,8 @@ def run_tests():
 
     line_re = bol + timestamp_re() + then(' ')
 
-    begin_SIP_message_re = ( line_re + then('<--- ') +
-                            either('SIP read from UDP:', 'Transmitting (no NAT) to ') +
-                            capture(IP_port, name='client') + then(' --->') )
+    begin_SIP_message_re = ( line_re + then('<--- ') + either('SIP read from UDP:', 'Transmitting (no NAT) to ') +
+                             capture(IP_port, name='client') + then(' --->') )
 
     line = '[Apr 27 06:25:21] <--- Transmitting (no NAT) to 85.31.193.210:5060 --->'
     test(begin_SIP_message_re, line, ('[Apr 27 06:25:21] <--- Transmitting (no NAT) to 85.31.193.210:5060 --->',
