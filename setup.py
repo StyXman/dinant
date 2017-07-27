@@ -9,7 +9,7 @@ from distutils.core import setup
 
 setup(
     name ='dinant',
-    version = '0.2',
+    version = '0.3',
     description = 'An attempt to make regular expressions more readable.',
     author = 'Marcos Dione',
     author_email = 'mdione@grulic.org.ar',
