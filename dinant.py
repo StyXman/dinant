@@ -226,10 +226,15 @@ __dt_format_to_re = {
 # date/time
 # NOTE: this must be kept in sync with
 # https://docs.python.org/3/library/time.html#time.strptime
-def datetime(s="%a %b %d %H:%M:%S %Y"):
+def datetime(s="%a %b %d %H:%M:%S %Y", buggy_day=False):
     for fmt in ('%c', '%x', '%X'):
         if fmt in s:
             raise ValueError('%r not supported.' % fmt)
+
+    if buggy_day and '%d' in s:
+        # Apr  7 07:46:44
+        #     ^^
+        s = s.replace('%d', str(either(' '+digit, exactly(2, digits))))
 
     # TODO: support escaped %%a
     for fmt, regexp in __dt_format_to_re.items():
@@ -339,6 +344,7 @@ def run_tests():
 
     test(datetime(), 'Fri Apr 28 13:34:19 2017', ('Fri Apr 28 13:34:19 2017', ))
     test(datetime('%b %d %H:%M:%S'), 'Apr 28 13:34:19', ('Apr 28 13:34:19', ))
+    test(datetime('%b %d %H:%M:%S', buggy_day=True), 'Apr  8 13:34:19', ('Apr  8 13:34:19', ))
 
     test(IP_number, '10.33.1.53', ('10.33.1.53', ))
     test(IP_port, '10.33.1.53:60928', ('10.33.1.53:60928', ))
