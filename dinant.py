@@ -75,12 +75,33 @@ class Dinant:
         return self.expression[index]
 
 
-    def match(self, s):
+    def match(self, s, debug=False):
         """For compatibility with the `re` module."""
-        if self.compiled is None:
-            self.compiled = re.compile(str(self))
+        if not debug:
+            if self.compiled is None:
+                self.compiled = re.compile(str(self))
 
-        return self.compiled.match(s)
+            return self.compiled.match(s)
+        else:
+            so_far = ''
+            syntax_error = None
+
+            for string in self.strings:
+                so_far += string
+                try:
+                    compiled = re.compile(so_far)
+                except re.error as e:
+                    syntax_error = e
+                else:
+                    syntax_error = None
+                    if not compiled.match(s):
+                        return so_far
+
+            if syntax_error is not None:
+                raise syntax_error
+            else:
+                # it matched
+                return True
 
 
     def __eq__(self, other):
@@ -392,6 +413,15 @@ def run_tests():
 
     test(call_re, line, ('[Apr 27 07:01:27] VERBOSE[4023][C-0005da36] chan_sip.c: [Apr 27 07:01:27] ', 'Apr 27 07:01:27'))
 
+    identifier_re = one_or_more(any_of('A-Za-z0-9-'))
+    line = """36569.12ms (cpu 35251.71ms) | rendering style for layer: 'terrain-small' and style 'terrain-small'"""
+    render_time_re = ( bol + capture(float, name='wall_time') + 'ms ' +
+                       '(cpu' + capture(float, name='cpu_time') + 'ms)' + one_or_more(' ') + '| ' +
+                       "rendering style for layer: '" + capture(identifier_re, name='layer') + "' " +
+                       "and style '" + capture(identifier_re, name='style') + "'" + eol )
+    render_time_partial_match_re = ( bol + capture(float, name='wall_time') + 'ms ' +
+                                     '(cpu' + capture(float, name='cpu_time') )
+    ass(render_time_re.match(line, debug=True), str(render_time_partial_match_re))
 
     print('A-OK!')
 
