@@ -3,6 +3,7 @@
 import re
 import sys
 import copy
+from functools import partial
 
 class Dinant:
     # TODO: *others, should help fixing either()
@@ -225,6 +226,9 @@ integer = int
 float = either(maybe('-') + maybe(one_or_more(digits)) + then('.') + one_or_more(digits), integer + then('.'), integer)
 hex = one_or_more(any_of('0-9A-Fa-f'))
 hexa = hex
+
+# fallback
+regexp = partial(Dinant, escape=False)
 
 # NOTE: none of these regexps do any value checking (%H between 00-23, etc)
 __dt_format_to_re = {
