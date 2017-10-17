@@ -196,8 +196,8 @@ def maybe(s, greedy=True):
 
     return result
 
-def then(s):
-    return Dinant(s)
+then = Dinant
+text = Dinant
 
 bol = Dinant('^', escape=False)
 eol = Dinant('$', escape=False)
