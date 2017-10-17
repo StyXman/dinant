@@ -3,7 +3,7 @@ doesn't need much maintenance. Still, any issues will be treated with due
 diligency.
 
 `dinant` is an attempt, like may others, to make regular expressions more
-readable, and, like many other, fails miserably... but we try anyways.
+readable and, like many others, fails miserably... but we try anyways.
 
 You can find many examples in the source file, which includes unit tests to make
 sure we don't make things worse. Because it's implementation is currently very,
