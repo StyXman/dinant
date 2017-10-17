@@ -91,33 +91,36 @@ class Dinant:
         return self.expression[index]
 
 
-    def match(self, s, debug=False):
+    def match(self, s):
         """For compatibility with the `re` module."""
-        if not debug:
-            if self.compiled is None:
-                self.compiled = re.compile(str(self))
+        if self.compiled is None:
+            self.compiled = re.compile(str(self))
 
-            return self.compiled.match(s)
-        else:
-            so_far = ''
-            syntax_error = None
+        return self.compiled.match(s)
 
-            for string in self.strings:
-                so_far += string
-                try:
-                    compiled = re.compile(so_far)
-                except re.error as e:
-                    syntax_error = e
-                else:
-                    syntax_error = None
-                    if not compiled.match(s):
-                        return so_far
 
-            if syntax_error is not None:
-                raise syntax_error
+    def debug(self, s):
+        """Match incrementally until one of the subexpression fails matching. Returns the non-matching expression,
+        True if it matches, or raise teh point where there is a syntax error."""
+        so_far = ''
+        syntax_error = None
+
+        for string in self.strings:
+            so_far += string
+            try:
+                compiled = re.compile(so_far)
+            except re.error as e:
+                syntax_error = e
             else:
-                # it matched
-                return True
+                syntax_error = None
+                if not compiled.match(s):
+                    return so_far
+
+        if syntax_error is not None:
+            raise syntax_error
+        else:
+            # it matched
+            return True
 
 
     def __eq__(self, other):
@@ -456,7 +459,7 @@ def run_tests():
                        "and style '" + capture(identifier_re, name='style') + "'" + eol )
     render_time_partial_match_re = ( bol + capture(float, name='wall_time') + 'ms ' +
                                      '(cpu' + capture(float, name='cpu_time') )
-    ass(render_time_re.match(line, debug=True), str(render_time_partial_match_re))
+    ass(render_time_re.debug(line), str(render_time_partial_match_re))
 
     # capture
     test('bc' + Dinant('a', capture='a') + 'de', 'bcade', ('bcade', 'a'))
