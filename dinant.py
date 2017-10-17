@@ -7,7 +7,7 @@ from functools import partial
 
 class Dinant:
     # TODO: *others, should help fixing either()
-    def __init__(self, other, escape=True):
+    def __init__(self, other, escape=True, capture=False):
         if isinstance(other, str):
             if escape:
                 self.strings = [ re.escape(other) ]
@@ -17,6 +17,21 @@ class Dinant:
             # Dinant(Dinant('a')) == Dinant('a') but
             # id(Dinant('a')) != id(Dinant('a'))
             self.strings = copy.copy(other.strings)
+
+        if capture is False:
+            pass
+        elif capture is True:
+            # fastest way as per timeit, py3.5
+            l = [ '(' ]
+            l.extend(self.strings)
+            l.append(')')
+            self.strings = l
+        else:
+            # capture holds the name to use
+            l = [ '(?P<', capture, '>' ]
+            l.extend(self.strings)
+            l.append(')')
+            self.strings = l
 
         # caches
         self.expression = None
@@ -128,6 +143,11 @@ class Dinant:
             raise ValueError('''This regular expression hasn't matched anything yet.''')
 
         return self.g.group(*args)
+
+
+    def __call__(self, *args, **kwargs):
+        # for supporting d.integer and d.integer(capture='foo')
+        return Dinant(self, *args, **kwargs)
 
 
 anything = Dinant('.', escape=False)
@@ -426,6 +446,23 @@ def run_tests():
     render_time_partial_match_re = ( bol + capture(float, name='wall_time') + 'ms ' +
                                      '(cpu' + capture(float, name='cpu_time') )
     ass(render_time_re.match(line, debug=True), str(render_time_partial_match_re))
+
+    # capture
+    test('bc' + Dinant('a', capture='a') + 'de', 'bcade', ('bcade', 'a'))
+    test('bc' + text('a', capture='a') + 'de', 'bcade', ('bcade', 'a'))
+
+    test(digit, '1', ('1', ))
+    test(digit(capture='foo'), '1', ('1', ))
+    test(integer(capture='foo'), '123', ('123', ))
+
+    identifier_re = one_or_more(any_of('A-Za-z0-9-'))
+    line = """36569.12ms (cpu 35251.71ms) | rendering style for layer: 'terrain-small' and style 'terrain-small'"""
+    render_time_re = ( bol + float(capture='wall_time') + 'ms ' +
+                       #    v-- here the bug is fixed
+                       '(cpu ' + float(capture='cpu_time') + 'ms)' + one_or_more(' ') + '| ' +
+                       "rendering style for layer: '" + identifier_re(capture='layer') + "' " +
+                       "and style '" + identifier_re(capture='style') + "'" + eol )
+    test(render_time_re, line, (line, '36569.12', '35251.71', 'terrain-small', 'terrain-small'))
 
     print('A-OK!')
 
