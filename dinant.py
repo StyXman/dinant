@@ -246,6 +246,7 @@ integer = int
 float = either(maybe('-') + maybe(one_or_more(digits)) + then('.') + one_or_more(digits), integer + then('.'), integer)
 hex = one_or_more(any_of('0-9A-Fa-f'))
 hexa = hex
+# TODO: octal
 
 # fallback
 regexp = partial(Dinant, escape=False)
@@ -392,6 +393,9 @@ def run_tests():
     test(float, '-.736', ('-.736', ))
     test(float, '.736', ('.736', ))
 
+    # TODO
+    # test(hex, '0005da36'
+
     test(datetime(), 'Fri Apr 28 13:34:19 2017', ('Fri Apr 28 13:34:19 2017', ))
     test(datetime('%b %d %H:%M:%S'), 'Apr 28 13:34:19', ('Apr 28 13:34:19', ))
     test(datetime('%b %d %H:%M:%S', buggy_day=True), 'Apr  8 13:34:19', ('Apr  8 13:34:19', ))
@@ -434,12 +438,19 @@ def run_tests():
                 one_or_more(any_of('a-z_\.')) + ': ' + timestamp_re(capt=False) + ' ' )
 
     line = '[Apr 27 07:01:27] VERBOSE[4023][C-0005da36] chan_sip.c: [Apr 27 07:01:27] Sending to 85.31.193.194:5060 (no NAT)'
-
     test(call_re, line, ('[Apr 27 07:01:27] VERBOSE[4023][C-0005da36] chan_sip.c: [Apr 27 07:01:27] ', 'Apr 27 07:01:27'))
+
+    # another, smaller
+    test(one_or_more(any_of('a-z0-9_.')), 'netsock2.c', ('netsock2.c', ))
+
+    # strptime() assumes year=1900 if not parsable from the string
+    # hadn't figure out how to make it return objects
+    # test(datetime("%b %d %H:%M:%S"), 'Jul 26 07:33:37', (dt.datetime(1900, 6, 26, 7, 33, 37), ))
 
     identifier_re = one_or_more(any_of('A-Za-z0-9-'))
     line = """36569.12ms (cpu 35251.71ms) | rendering style for layer: 'terrain-small' and style 'terrain-small'"""
     render_time_re = ( bol + capture(float, name='wall_time') + 'ms ' +
+                       #    v-- here's the bug, needs a space
                        '(cpu' + capture(float, name='cpu_time') + 'ms)' + one_or_more(' ') + '| ' +
                        "rendering style for layer: '" + capture(identifier_re, name='layer') + "' " +
                        "and style '" + capture(identifier_re, name='style') + "'" + eol )
