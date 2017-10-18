@@ -273,6 +273,12 @@ def between(m, n, s, greedy=True):
 
     return result
 
+def at_most(n, s, greedy=True):
+    return between(None, n, s, greedy)
+
+def at_least(n, s, greedy=True):
+    return between(n, None, s, greedy)
+
 
 # useful shit
 digit = Dinant('\d', escape=False)
