@@ -535,6 +535,11 @@ def run_tests():
     test(digit(times=[1, 3]), '1', ('1', ))
     test(digit(times=[1, 3]), '123', ('123', ))
 
+    # between
+    test(between(1, None, digit), '')
+    test(between(1, None, digit), '1', ('1', ))
+    test(between(1, None, digit), '1234567890', ('1234567890', ))
+
     print('A-OK!')
 
 
