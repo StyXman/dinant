@@ -7,7 +7,35 @@ from functools import partial
 
 class Dinant:
     # TODO: *others, should help fixing either()
-    def __init__(self, other, escape=True, capture=False, name=None):
+    def __init__(self, other, escape=True, capture=False, name=None, times=None,
+                 greedy=True):
+
+        if times is not None:
+            fail = False
+
+            if isinstance(times, _int):
+                other = exactly(times, other)
+            elif isinstance(times, list):
+                if len(times) == 1:
+                    # times is the lower bound
+                    if times[0] == 0:
+                        other = zero_or_more(other, greedy)
+                    elif times[0] == 1:
+                        other = one_or_more(other, greedy)
+                    else:
+                        fail = True
+
+                elif len(times) == 2:
+                    if times[1] == 1 and (times[0] is None or times[0] is Ellipsis):
+                        other = maybe(other, greedy)
+                    else:
+                        other = between(*times, other, greedy)
+                else:
+                    fail = True
+
+            if fail:
+                raise ValueError('times must be either an integer, [0, ], [1, ] or [m, n], where m or n could be ... ')
+
         if isinstance(other, str):
             if escape:
                 self.strings = [ re.escape(other) ]
@@ -234,7 +262,12 @@ def exactly(n, s):
     return s + wrap('{', str(n), '}')
 
 def between(m, n, s, greedy=True):
-    result =  s + wrap('{', Dinant("%d,%d" % (m, n), escape=False), '}')
+    if m is None or m is Ellipsis:
+        m = ''
+    if n is None or n is Ellipsis:
+        n = ''
+
+    result =  s + wrap('{', Dinant("%s,%s" % (m, n), escape=False), '}')
     if not greedy:
         result += '?'
 
@@ -245,6 +278,7 @@ def between(m, n, s, greedy=True):
 digit = Dinant('\d', escape=False)
 digits = digit
 uint = one_or_more(digits)
+_int = int
 int = maybe('-') + uint
 integer = int
 # NOTE: the order is important or the regexp stops at the first match
@@ -318,7 +352,7 @@ def run_tests():
             print("%r != %r" % (x, y))
             raise
 
-    def test(regexp, src, dst, capt=True):
+    def test(regexp, src, dst=None, capt=True):
         try:
             if (regexp[0] != '(' or regexp[:3] == '(?:') and capt:
                 regexp = capture(regexp)
@@ -483,6 +517,23 @@ def run_tests():
     # name variant
     test(digit(name='foo'), '1', ('1', ))
     test(integer(name='foo'), '123', ('123', ))
+
+    # times
+    test(digit(times=[0, ]), '', ('', ))
+    test(digit(times=[0, ]), '123', ('123', ))
+
+    test(digit(times=[1, ]), '')
+    test(digit(times=[1, ]), '1', ('1', ))
+    test(digit(times=[1, ]), '123', ('123', ))
+
+    test(digit(times=3), '')
+    test(digit(times=3), '1')
+    test(digit(times=3), '12')
+    test(digit(times=3), '123', ('123', ))
+
+    test(digit(times=[1, 3]), '')
+    test(digit(times=[1, 3]), '1', ('1', ))
+    test(digit(times=[1, 3]), '123', ('123', ))
 
     print('A-OK!')
 
