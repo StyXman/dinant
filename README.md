@@ -1,6 +1,6 @@
 **NOTE**: This is not abandoned code, it's just that is so simple, it really
 doesn't need much maintenance. Still, any issues will be treated with due
-diligency.
+diligence.
 
 `dinant` is an attempt, like may others, to make regular expressions more
 readable and, like many others, fails miserably... but we try anyways.
