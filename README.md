@@ -5,11 +5,11 @@ diligence.
 # Introduction
 
 `dinant` is an attempt, like may others, to make regular expressions more
-readable and, like many others, fails miserably... but we try anyways.
+readable and, like many others, it fails miserably... but we try anyways.
 
 You can find many examples in the source file, which includes unit tests to make
 sure we don't make things worse. Because it's implementation is currently very,
-very simple, it does not make any checks, so you can shoot you own foot. Also,
+very simple, it does not make any checks, so you can shoot your own foot. Also,
 because it doesn't even attempt to, it does not makes any optimizations, and
 resulting regexps can be more complex to read and less efficient. But the idea
 is that you would never see them again. For instance:
@@ -56,8 +56,6 @@ expression fails:
     # ok, this is too verbose (I hope next version will be more human readable)
     # but it's clear it's the second capture
     Out[5]: '^(?P<wall_time>(?:(?:\\-)?(?:(?:\\d)+)?\\.(?:\\d)+|(?:\\-)?(?:\\d)+\\.|(?:\\-)?(?:\\d)+))ms\\ \\(cpu(?P<cpu_time>(?:(?:\\-)?(?:(?:\\d)+)?\\.(?:\\d)+|(?:\\-)?(?:\\d)+\\.|(?:\\-)?(?:\\d)+))'
-    # the error is that the text '(cpu' needs a space at the end
-    ^(?P<wall_time>(?:(?:\-)?(?:(?:\d)+)?\.(?:\d)+|(?:\-)?(?:\d)+\.|(?:\-)?(?:\d)+))ms\ \(cpu(?P<cpu_time>(?:(?:\-)?(?:(?:\d)+)?\.(?:\d)+|(?:\-)?(?:\d)+\.|(?:\-)?(?:\d)+))
 
 `debug()`'s result is the first subexpression that does not match; in this case
 it's the second `d.capture(d.float, ...)`, so the bug is either there or in the
@@ -69,7 +67,7 @@ previous subexpression. It turns out to be that `(cpu` needs an extra space:
     In [7]: print(render_time_re.match(line))
     <_sre.SRE_Match object; span=(0, 27), match='36569.12ms (cpu 35251.71ms)'>
 
-If the module is run as a script, it will accept such an expression and print in
+If the module is run as a script, it will accept such an expression and print to
 `stdout` the generated regexp:
 
     $ python3 -m dinant "bol + 'run' + _any('-_ ') + 'test' + maybe('s') + eol"
@@ -87,7 +85,7 @@ parts. Here's a list of available elements, following Python's `re` page. Here,
 strings.
 
 * `anything` is `.`.
-* `bol' is `^` (begin of line).
+* `bol` is `^` (begin of line).
 * `eol` is `$` (end of line).
 * `zero_or_more(re)` is `(re)*`, matching `re` zero or more times. I can be also
   be written as `re(times=[0 ])`.
@@ -99,9 +97,9 @@ strings.
 * `between(m, n, re)` is `(re){m. n}`; also `re(times=[m, n]`; with non greedy
   version: `between(m, n, re, greedy=False)`.
 * `at_most(m, re)` and `at_least(m, re)` are shortcuts for `between(None, m, re)`
-  and `between(m, None, re)`; also `re(times=[..., m])` and `re(times[m, ...])`.
+  and `between(m, None, re)`; also `re(times=[..., m])` and `re(times[m, ...])`. Here `...` is the actual `Ellipsis` literal.
 * `text(s)` and `then(s)` match exactly `s`, so it's escaped. You can also
-  concatenate the string: `s + re` or `re +s`. This means you don't have to
+  concatenate the string: `s + re` or `re + s`. This means you don't have to
   escape your strings.
 * `any_of(s)` is `[s]`, where `s` has to be in adequate format to be between
   `[]`s. Check `re`'s doc if unsure.
@@ -128,6 +126,6 @@ potential of `dinant` starts to show.
 * `IPv4()` matches IPv4 addresses!
 * `IP_port` matches strings in format `IPv4:port`.
 
-That's all for now. More will come soon, see `TODO.md` for a preview.
+That's all for now. More will come soon, see `TODO.md` and the issued for a preview.
 
 [1] but the real word is 'dîneur'.
