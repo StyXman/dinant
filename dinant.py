@@ -7,7 +7,7 @@ from functools import partial
 
 class Dinant:
     # TODO: *others, should help fixing either()
-    def __init__(self, other, escape=True, capture=False):
+    def __init__(self, other, escape=True, capture=False, name=None):
         if isinstance(other, str):
             if escape:
                 self.strings = [ re.escape(other) ]
@@ -26,9 +26,11 @@ class Dinant:
             l.extend(self.strings)
             l.append(')')
             self.strings = l
-        else:
+        elif isinstance(capture, str) or name is not None:
+            name = name if name is not None else capture
+
             # capture holds the name to use
-            l = [ '(?P<', capture, '>' ]
+            l = [ '(?P<', name, '>' ]
             l.extend(self.strings)
             l.append(')')
             self.strings = l
@@ -477,6 +479,10 @@ def run_tests():
                        "rendering style for layer: '" + identifier_re(capture='layer') + "' " +
                        "and style '" + identifier_re(capture='style') + "'" + eol )
     test(render_time_re, line, (line, '36569.12', '35251.71', 'terrain-small', 'terrain-small'))
+
+    # name variant
+    test(digit(name='foo'), '1', ('1', ))
+    test(integer(name='foo'), '123', ('123', ))
 
     print('A-OK!')
 
