@@ -1,6 +1,8 @@
 **NOTE**: This is not abandoned code, it's just that is so simple, it really
 doesn't need much maintenance. Still, any issues will be treated with due
-diligency.
+diligence.
+
+# Introduction
 
 `dinant` is an attempt, like may others, to make regular expressions more
 readable and, like many others, fails miserably... but we try anyways.
@@ -12,33 +14,18 @@ because it doesn't even attempt to, it does not makes any optimizations, and
 resulting regexps can be more complex to read and less efficient. But the idea
 is that you would never see them again. For instance:
 
-```
-capture( one_or_more(_any('a-z')) ) + zero_or_more(then('[') + capture( zero_or_more(_any('a-z')) ) + then(']'))
-```
+    capture( one_or_more(_any('a-z')) ) + zero_or_more(then('[') + capture( zero_or_more(_any('a-z')) ) + then(']'))
 
 becomes `((?:[a-z])+)(?:\[((?:[a-z])*)\])*` and not `([a-z]+)(?:\[([a-z]*)\])*`.
 
-One cool feature: a `Dinant` expression (object) can tell you which part of your
-expression fails:
+`dinant` has evolved a bit, trying to give alternatives that might please other
+points of view, so you can write the above as:
 
-```
-# this is a real world example!
-In [1]: import dinant as d
-In [2]: s = """36569.12ms (cpu 35251.71ms) | rendering style for layer: 'terrain-small' and style 'terrain-small'"""
-In [3]: identifier_re = d.one_or_more(d.any_of('A-Za-z0-9-'))
-# can you spot the error?
-In [4]: render_time_re = ( d.bol + d.capture(d.float, name='wall_time') + 'ms ' +
-   ...:                    '(cpu' + d.capture(d.float, name='cpu_time') + 'ms)' + d.one_or_more(' ') + '| ' +
-   ...:                    "rendering style for layer: '" + d.capture(identifier_re, name='layer') + "' " +
-   ...:                    "and style '" + d.capture(identifier_re, name='style') + "'" + d.eol )
+    _any('a-z', times=[1, ], capture=True) + zero_or_more( '[' + _any('a-z', times=[0, ], capture=True) + ']' )
 
+or even:
 
-In [5]: render_time_re.match(s, debug=True)
-# ok, this is too verbose (I hope next version will be more human readable)
-# but it's clear it's the second capture
-Out[5]: '^(?P<wall_time>(?:(?:\\-)?(?:(?:\\d)+)?\\.(?:\\d)+|(?:\\-)?(?:\\d)+\\.|(?:\\-)?(?:\\d)+))ms\\ \\(cpu(?P<cpu_time>(?:(?:\\-)?(?:(?:\\d)+)?\\.(?:\\d)+|(?:\\-)?(?:\\d)+\\.|(?:\\-)?(?:\\d)+))'
-# the error is that the text '(cpu' needs a space at the end
-```
+    _any('a-z', times=[1, ], capture=True) + ( '[' + _any('a-z', times=[0, ], capture=True) + ']' )(times=[0, ])
 
 You might say that that expression is more difficult to read than a regular
 expression, and I half agree with you. You could split your expression in its
@@ -46,8 +33,41 @@ components:
 
     name = one_or_more(_any('a-z'))
     key = zero_or_more(_any('a-z'))
-    subexp = ( capture(name, 'name') +
-               zero_or_more(then('[') + capture(key, 'key') + then(']')) )
+    subexp = ( capture(name, 'name') + zero_or_more(then('[') + capture(key, 'key') + then(']')) )
+
+That version of capture can be rewritten as:
+
+    subexp = ( name(name='name') + zero_or_more(then('[') + key(name='key') + then(']')) )
+
+One cool feature: a `Dinant` expression (object) can tell you which part of your
+expression fails:
+
+    # this is a real world example!
+    In [1]: import dinant as d
+    In [2]: line = """36569.12ms (cpu 35251.71ms)\n"""
+    # can you spot the error?
+    In [3]: render_time_re = ( d.bol + d.capture(d.float, name='wall_time') + 'ms ' +
+    ...:                       '(cpu' + d.capture(d.float, name='cpu_time') + 'ms)' + d.eol )
+
+    In [4]: print(render_time_re.match(line))
+    None
+
+    In [5]: print(render_time_re.debug(line))
+    # ok, this is too verbose (I hope next version will be more human readable)
+    # but it's clear it's the second capture
+    Out[5]: '^(?P<wall_time>(?:(?:\\-)?(?:(?:\\d)+)?\\.(?:\\d)+|(?:\\-)?(?:\\d)+\\.|(?:\\-)?(?:\\d)+))ms\\ \\(cpu(?P<cpu_time>(?:(?:\\-)?(?:(?:\\d)+)?\\.(?:\\d)+|(?:\\-)?(?:\\d)+\\.|(?:\\-)?(?:\\d)+))'
+    # the error is that the text '(cpu' needs a space at the end
+    ^(?P<wall_time>(?:(?:\-)?(?:(?:\d)+)?\.(?:\d)+|(?:\-)?(?:\d)+\.|(?:\-)?(?:\d)+))ms\ \(cpu(?P<cpu_time>(?:(?:\-)?(?:(?:\d)+)?\.(?:\d)+|(?:\-)?(?:\d)+\.|(?:\-)?(?:\d)+))
+
+`debug()`'s result is the first subexpression that does not match; in this case
+it's the second `d.capture(d.float, ...)`, so the bug is either there or in the
+previous subexpression. It turns out to be that `(cpu` needs an extra space:
+
+    In [6]: render_time_re = ( d.bol + d.capture(d.float, name='wall_time') + 'ms ' +
+    ...:                       '(cpu ' + d.capture(d.float, name='cpu_time') + 'ms)' + d.eol )
+
+    In [7]: print(render_time_re.match(line))
+    <_sre.SRE_Match object; span=(0, 27), match='36569.12ms (cpu 35251.71ms)'>
 
 If the module is run as a script, it will accept such an expression and print in
 `stdout` the generated regexp:
@@ -58,5 +78,56 @@ If the module is run as a script, it will accept such an expression and print in
 What about the name? It's a nice town in België/Belgique/Belgien that I plan to
 visit some time. It also could mean 'dinning person' in French[1], which makes
 sense, as I wrote this during dinner.
+
+# Documentation
+
+`dinant` builds regular expressions (regexps) by concatenating and composing its
+parts. Here's a list of available elements, following Python's `re` page. Here,
+`re` is a `dinant` regexp; `m` and `n` are integers; and `s` and `name` are
+strings.
+
+* `anything` is `.`.
+* `bol' is `^` (begin of line).
+* `eol` is `$` (end of line).
+* `zero_or_more(re)` is `(re)*`, matching `re` zero or more times. I can be also
+  be written as `re(times=[0 ])`.
+* `one_or_more(re)` is `(re)+`; also `re(times=[1, ])`.
+* `maybe(re)` is `(re)?`; also `re(times=[..., 1]` or `re(times=[0, 1]`.
+* Non-greedy versions are generated by adding `greedy=False` to the parameters
+  of the regexp: `zero_or_more(re, greedy=False)`.
+* `exactly(m, re)` is `(re){m}`; also `re(times=m)`.
+* `between(m, n, re)` is `(re){m. n}`; also `re(times=[m, n]`; with non greedy
+  version: `between(m, n, re, greedy=False)`.
+* `at_most(m, re)` and `at_least(m, re)` are shortcuts for `between(None, m, re)`
+  and `between(m, None, re)`; also `re(times=[..., m])` and `re(times[m, ...])`.
+* `text(s)` and `then(s)` match exactly `s`, so it's escaped. You can also
+  concatenate the string: `s + re` or `re +s`. This means you don't have to
+  escape your strings.
+* `any_of(s)` is `[s]`, where `s` has to be in adequate format to be between
+  `[]`s. Check `re`'s doc if unsure.
+* `none_of(s)` is `[^s]`.
+* `either(re, ...)` is `(re|...)`.
+* `capture(re, [name=name])` captures the subexpression, optionally with a name;
+  also `re(capture=True)` or `re(capture=name)` for the named version.
+* By default no subexpression is captured unless wrapped in `capture()` or
+  `capture` is passed as parameter.
+* `backref(name)`, `comment(s)`, `lookahead(re)`, `neg_lookahead(re)`,
+  `lookbehind(re)` and `neg_lookbehind(re)` work as expected.
+* `regexp(s)` treats s as a pure regexp, so no escaping here.
+
+Nothing strange so far, just alternative ways to express the same. Now the real
+potential of `dinant` starts to show.
+
+* `digit` matches any (ascii) digit. `digits` too (think of `one_or_more(digits)`).
+* `uint` matches any positive (plus 0) integer.
+* `int` and `integer` match any integer.
+* Guess what `float`, `hex` and `hexa` do (hint: the last two are the same).
+* `datetime([format], [buggy_day=False])` matches datetimes using `format`,
+  which is conveniently written in `strptime()` language. `buggy_day` is there
+  because `%d` matches `08` but not ` 8`.
+* `IPv4()` matches IPv4 addresses!
+* `IP_port` matches strings in format `IPv4:port`.
+
+That's all for now. More will come soon, see `TODO.md` for a preview.
 
 [1] but the real word is 'dîneur'.

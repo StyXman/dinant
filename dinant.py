@@ -7,7 +7,35 @@ from functools import partial
 
 class Dinant:
     # TODO: *others, should help fixing either()
-    def __init__(self, other, escape=True):
+    def __init__(self, other, escape=True, capture=False, name=None, times=None,
+                 greedy=True):
+
+        if times is not None:
+            fail = False
+
+            if isinstance(times, _int):
+                other = exactly(times, other)
+            elif isinstance(times, list):
+                if len(times) == 1:
+                    # times is the lower bound
+                    if times[0] == 0:
+                        other = zero_or_more(other, greedy)
+                    elif times[0] == 1:
+                        other = one_or_more(other, greedy)
+                    else:
+                        fail = True
+
+                elif len(times) == 2:
+                    if times[1] == 1 and (times[0] is None or times[0] is Ellipsis):
+                        other = maybe(other, greedy)
+                    else:
+                        other = between(*times, other, greedy)
+                else:
+                    fail = True
+
+            if fail:
+                raise ValueError('times must be either an integer, [0, ], [1, ] or [m, n], where m or n could be ... ')
+
         if isinstance(other, str):
             if escape:
                 self.strings = [ re.escape(other) ]
@@ -17,6 +45,23 @@ class Dinant:
             # Dinant(Dinant('a')) == Dinant('a') but
             # id(Dinant('a')) != id(Dinant('a'))
             self.strings = copy.copy(other.strings)
+
+        if capture is False:
+            pass
+        elif capture is True:
+            # fastest way as per timeit, py3.5
+            l = [ '(' ]
+            l.extend(self.strings)
+            l.append(')')
+            self.strings = l
+        elif isinstance(capture, str) or name is not None:
+            name = name if name is not None else capture
+
+            # capture holds the name to use
+            l = [ '(?P<', name, '>' ]
+            l.extend(self.strings)
+            l.append(')')
+            self.strings = l
 
         # caches
         self.expression = None
@@ -76,33 +121,36 @@ class Dinant:
         return self.expression[index]
 
 
-    def match(self, s, debug=False):
+    def match(self, s):
         """For compatibility with the `re` module."""
-        if not debug:
-            if self.compiled is None:
-                self.compiled = re.compile(str(self))
+        if self.compiled is None:
+            self.compiled = re.compile(str(self))
 
-            return self.compiled.match(s)
-        else:
-            so_far = ''
-            syntax_error = None
+        return self.compiled.match(s)
 
-            for string in self.strings:
-                so_far += string
-                try:
-                    compiled = re.compile(so_far)
-                except re.error as e:
-                    syntax_error = e
-                else:
-                    syntax_error = None
-                    if not compiled.match(s):
-                        return so_far
 
-            if syntax_error is not None:
-                raise syntax_error
+    def debug(self, s):
+        """Match incrementally until one of the subexpression fails matching. Returns the non-matching expression,
+        True if it matches, or raise teh point where there is a syntax error."""
+        so_far = ''
+        syntax_error = None
+
+        for string in self.strings:
+            so_far += string
+            try:
+                compiled = re.compile(so_far)
+            except re.error as e:
+                syntax_error = e
             else:
-                # it matched
-                return True
+                syntax_error = None
+                if not compiled.match(s):
+                    return so_far
+
+        if syntax_error is not None:
+            raise syntax_error
+        else:
+            # it matched
+            return True
 
 
     def __eq__(self, other):
@@ -128,6 +176,11 @@ class Dinant:
             raise ValueError('''This regular expression hasn't matched anything yet.''')
 
         return self.g.group(*args)
+
+
+    def __call__(self, *args, **kwargs):
+        # for supporting d.integer and d.integer(capture='foo')
+        return Dinant(self, *args, **kwargs)
 
 
 anything = Dinant('.', escape=False)
@@ -209,23 +262,36 @@ def exactly(n, s):
     return s + wrap('{', str(n), '}')
 
 def between(m, n, s, greedy=True):
-    result =  s + wrap('{', Dinant("%d,%d" % (m, n), escape=False), '}')
+    if m is None or m is Ellipsis:
+        m = ''
+    if n is None or n is Ellipsis:
+        n = ''
+
+    result =  s + wrap('{', Dinant("%s,%s" % (m, n), escape=False), '}')
     if not greedy:
         result += '?'
 
     return result
+
+def at_most(n, s, greedy=True):
+    return between(None, n, s, greedy)
+
+def at_least(n, s, greedy=True):
+    return between(n, None, s, greedy)
 
 
 # useful shit
 digit = Dinant('\d', escape=False)
 digits = digit
 uint = one_or_more(digits)
+_int = int
 int = maybe('-') + uint
 integer = int
 # NOTE: the order is important or the regexp stops at the first match
 float = either(maybe('-') + maybe(one_or_more(digits)) + then('.') + one_or_more(digits), integer + then('.'), integer)
 hex = one_or_more(any_of('0-9A-Fa-f'))
 hexa = hex
+# TODO: octal
 
 # fallback
 regexp = partial(Dinant, escape=False)
@@ -292,7 +358,7 @@ def run_tests():
             print("%r != %r" % (x, y))
             raise
 
-    def test(regexp, src, dst, capt=True):
+    def test(regexp, src, dst=None, capt=True):
         try:
             if (regexp[0] != '(' or regexp[:3] == '(?:') and capt:
                 regexp = capture(regexp)
@@ -372,6 +438,9 @@ def run_tests():
     test(float, '-.736', ('-.736', ))
     test(float, '.736', ('.736', ))
 
+    # TODO
+    # test(hex, '0005da36'
+
     test(datetime(), 'Fri Apr 28 13:34:19 2017', ('Fri Apr 28 13:34:19 2017', ))
     test(datetime('%b %d %H:%M:%S'), 'Apr 28 13:34:19', ('Apr 28 13:34:19', ))
     test(datetime('%b %d %H:%M:%S', buggy_day=True), 'Apr  8 13:34:19', ('Apr  8 13:34:19', ))
@@ -414,18 +483,68 @@ def run_tests():
                 one_or_more(any_of('a-z_\.')) + ': ' + timestamp_re(capt=False) + ' ' )
 
     line = '[Apr 27 07:01:27] VERBOSE[4023][C-0005da36] chan_sip.c: [Apr 27 07:01:27] Sending to 85.31.193.194:5060 (no NAT)'
-
     test(call_re, line, ('[Apr 27 07:01:27] VERBOSE[4023][C-0005da36] chan_sip.c: [Apr 27 07:01:27] ', 'Apr 27 07:01:27'))
+
+    # another, smaller
+    test(one_or_more(any_of('a-z0-9_.')), 'netsock2.c', ('netsock2.c', ))
+
+    # strptime() assumes year=1900 if not parsable from the string
+    # hadn't figure out how to make it return objects
+    # test(datetime("%b %d %H:%M:%S"), 'Jul 26 07:33:37', (dt.datetime(1900, 6, 26, 7, 33, 37), ))
 
     identifier_re = one_or_more(any_of('A-Za-z0-9-'))
     line = """36569.12ms (cpu 35251.71ms) | rendering style for layer: 'terrain-small' and style 'terrain-small'"""
     render_time_re = ( bol + capture(float, name='wall_time') + 'ms ' +
+                       #    v-- here's the bug, needs a space
                        '(cpu' + capture(float, name='cpu_time') + 'ms)' + one_or_more(' ') + '| ' +
                        "rendering style for layer: '" + capture(identifier_re, name='layer') + "' " +
                        "and style '" + capture(identifier_re, name='style') + "'" + eol )
     render_time_partial_match_re = ( bol + capture(float, name='wall_time') + 'ms ' +
                                      '(cpu' + capture(float, name='cpu_time') )
-    ass(render_time_re.match(line, debug=True), str(render_time_partial_match_re))
+    ass(render_time_re.debug(line), str(render_time_partial_match_re))
+
+    # capture
+    test('bc' + Dinant('a', capture='a') + 'de', 'bcade', ('bcade', 'a'))
+    test('bc' + text('a', capture='a') + 'de', 'bcade', ('bcade', 'a'))
+
+    test(digit, '1', ('1', ))
+    test(digit(capture='foo'), '1', ('1', ))
+    test(integer(capture='foo'), '123', ('123', ))
+
+    identifier_re = one_or_more(any_of('A-Za-z0-9-'))
+    line = """36569.12ms (cpu 35251.71ms) | rendering style for layer: 'terrain-small' and style 'terrain-small'"""
+    render_time_re = ( bol + float(capture='wall_time') + 'ms ' +
+                       #    v-- here the bug is fixed
+                       '(cpu ' + float(capture='cpu_time') + 'ms)' + one_or_more(' ') + '| ' +
+                       "rendering style for layer: '" + identifier_re(capture='layer') + "' " +
+                       "and style '" + identifier_re(capture='style') + "'" + eol )
+    test(render_time_re, line, (line, '36569.12', '35251.71', 'terrain-small', 'terrain-small'))
+
+    # name variant
+    test(digit(name='foo'), '1', ('1', ))
+    test(integer(name='foo'), '123', ('123', ))
+
+    # times
+    test(digit(times=[0, ]), '', ('', ))
+    test(digit(times=[0, ]), '123', ('123', ))
+
+    test(digit(times=[1, ]), '')
+    test(digit(times=[1, ]), '1', ('1', ))
+    test(digit(times=[1, ]), '123', ('123', ))
+
+    test(digit(times=3), '')
+    test(digit(times=3), '1')
+    test(digit(times=3), '12')
+    test(digit(times=3), '123', ('123', ))
+
+    test(digit(times=[1, 3]), '')
+    test(digit(times=[1, 3]), '1', ('1', ))
+    test(digit(times=[1, 3]), '123', ('123', ))
+
+    # between
+    test(between(1, None, digit), '')
+    test(between(1, None, digit), '1', ('1', ))
+    test(between(1, None, digit), '1234567890', ('1234567890', ))
 
     print('A-OK!')
 
