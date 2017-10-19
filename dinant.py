@@ -285,7 +285,7 @@ digit = Dinant('\d', escape=False)
 digits = digit
 uint = one_or_more(digits)
 _int = int
-int = maybe('-') + uint
+int = maybe(any_of('+-')) + uint
 integer = int
 # NOTE: the order is important or the regexp stops at the first match
 float = either(maybe('-') + maybe(one_or_more(digits)) + then('.') + one_or_more(digits), integer + then('.'), integer)
