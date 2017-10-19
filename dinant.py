@@ -44,6 +44,9 @@ class Dinant:
         else:
             # Dinant(Dinant('a')) == Dinant('a') but
             # id(Dinant('a')) != id(Dinant('a'))
+            # the leftmost protion accumulates all the other ones in its .string attr
+            # so we copy so we can reuse portions at will
+            # see __add__()
             self.strings = copy.copy(other.strings)
 
         if capture is False:
@@ -186,8 +189,8 @@ class Dinant:
 anything = Dinant('.', escape=False)
 
 
+# this is a common structure used below
 def wrap(left, middle, right):
-    # this is a common structure used below
     return Dinant(left, escape=False) + middle + Dinant(right, escape=False)
 
 
@@ -196,13 +199,24 @@ def any_of(s):
     See https://docs.python.org/3/library/re.html#regular-expression-syntax ."""
     return wrap('[', Dinant(s, escape=False), ']')
 
+# another helper function
+def captures(kwargs):
+    return ('capture' in kwargs and kwargs['capture']) or 'name' in kwargs
 
-def either(*args):
+def either(*args, **kwargs):
     # TODO: this is the only point where we pre compact
-    return ( wrap('(?:', Dinant('|'.join([ str(Dinant(s) if isinstance(s, str) else s) for s in args ]), escape=False), ')') )
+    inner = Dinant('|'.join([ str(Dinant(s) if isinstance(s, str) else s) for s in args ]), escape=False)
+    # optimization: check if capturing
+    if captures(kwargs):
+        return capture(inner, **kwargs)
+    else:
+        return wrap('(?:', inner, ')')
 
 
-def capture(s, name=None):
+def capture(s, capture=True, name=None):
+    # ugh
+    name = name if name is not None else (capture if isinstance(capture, str) else None)
+
     if name is None:
         return wrap('(', Dinant(s), ')')
     else:
@@ -285,10 +299,13 @@ digit = Dinant('\d', escape=False)
 digits = digit
 uint = one_or_more(digits)
 _int = int
-int = maybe('-') + uint
+int = maybe(any_of('+-')) + uint
 integer = int
 # NOTE: the order is important or the regexp stops at the first match
-float = either(maybe('-') + maybe(one_or_more(digits)) + then('.') + one_or_more(digits), integer + then('.'), integer)
+float = ( either(maybe(any_of('+-')) + maybe(one_or_more(digits)) + then('.') + one_or_more(digits),
+                 integer + then('.'),
+                 integer) +
+          maybe(any_of('Ee') + maybe(any_of('+-')) + one_or_more(digits)) )
 hex = one_or_more(any_of('0-9A-Fa-f'))
 hexa = hex
 # TODO: octal
@@ -379,6 +396,8 @@ def run_tests():
     ass(str(then('[]')), '\[\]')
 
     test(any_of('a-z'), 'abc', ('a', ))
+    test(any_of('+-'), '+', ('+', ))
+    test(any_of('-+'), '+', ('+', ))
     test(zero_or_more(any_of('a-z')), 'abc', ('abc', ))
     test(zero_or_more(any_of('a-z')), '', ('', ))
     test(one_or_more(any_of('a-z')), '', None)
@@ -386,6 +405,9 @@ def run_tests():
 
     test(either('abc', 'def'), 'abc', ('abc', ))
     test(either('abc', 'def'), 'def', ('def', ))
+    test(either('abc', 'def', capture=True), 'abc', ('abc', ))
+    test(either('abc', 'def', capture='foo'), 'abc', ('abc', ))
+    test(either('abc', 'def', name='foo'), 'abc', ('abc', ))
 
     test(anything, 'def', ('d', ))
 
@@ -428,15 +450,26 @@ def run_tests():
     ass((lookbehind('foo') + capture('bar')).search('foobar').groups(), ('bar', ))
 
     test(integer, '1942', ('1942', ))
+    test(integer, '+1942', ('+1942', ))
     test(integer, '-1942', ('-1942', ))
 
     test(float, '1942', ('1942', ))
     test(float, '-1942', ('-1942', ))
     # -?\d+ | -?\d+\. | (?:-)?(?:(?:\d)+)?\.(?:\d)+
+    test(float, '+1942.', ('+1942.', ))
     test(float, '-1942.', ('-1942.', ))
     test(float, '-1942.736', ('-1942.736', ))
     test(float, '-.736', ('-.736', ))
     test(float, '.736', ('.736', ))
+
+    # exponential
+    test(float, '1942E1', ('1942E1', ))
+    test(float, '1942E+1', ('1942E+1', ))
+    test(float, '1942E-1', ('1942E-1', ))
+    test(float, '1942e1', ('1942e1', ))
+    test(float, '1942e+1', ('1942e+1', ))
+    test(float, '1942e-1', ('1942e-1', ))
+
 
     # TODO
     # test(hex, '0005da36'

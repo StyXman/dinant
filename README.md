@@ -14,25 +14,25 @@ because it doesn't even attempt to, it does not makes any optimizations, and
 resulting regexps can be more complex to read and less efficient. But the idea
 is that you would never see them again. For instance:
 
-    capture( one_or_more(_any('a-z')) ) + zero_or_more(then('[') + capture( zero_or_more(_any('a-z')) ) + then(']'))
+    capture( one_or_more(any_of('a-z')) ) + zero_or_more(then('[') + capture( zero_or_more(any_of('a-z')) ) + then(']'))
 
 becomes `((?:[a-z])+)(?:\[((?:[a-z])*)\])*` and not `([a-z]+)(?:\[([a-z]*)\])*`.
 
 `dinant` has evolved a bit, trying to give alternatives that might please other
 points of view, so you can write the above as:
 
-    _any('a-z', times=[1, ], capture=True) + zero_or_more( '[' + _any('a-z', times=[0, ], capture=True) + ']' )
+    any_of('a-z', times=[1, ], capture=True) + zero_or_more( '[' + any_of('a-z', times=[0, ], capture=True) + ']' )
 
 or even:
 
-    _any('a-z', times=[1, ], capture=True) + ( '[' + _any('a-z', times=[0, ], capture=True) + ']' )(times=[0, ])
+    any_of('a-z', times=[1, ], capture=True) + ( '[' + any_of('a-z', times=[0, ], capture=True) + ']' )(times=[0, ])
 
 You might say that that expression is more difficult to read than a regular
 expression, and I half agree with you. You could split your expression in its
 components:
 
-    name = one_or_more(_any('a-z'))
-    key = zero_or_more(_any('a-z'))
+    name = one_or_more(any_of('a-z'))
+    key = zero_or_more(any_of('a-z'))
     subexp = ( capture(name, 'name') + zero_or_more(then('[') + capture(key, 'key') + then(']')) )
 
 That version of capture can be rewritten as:
@@ -72,7 +72,7 @@ previous subexpression. It turns out to be that `(cpu` needs an extra space:
 If the module is run as a script, it will accept such an expression and print in
 `stdout` the generated regexp:
 
-    $ python3 -m dinant "bol + 'run' + _any('-_ ') + 'test' + maybe('s') + eol"
+    $ python3 -m dinant "bol + 'run' + any_of('-_ ') + 'test' + maybe('s') + eol"
     ^run[-_ ]test(?:s)?$
 
 What about the name? It's a nice town in België/Belgique/Belgien that I plan to
