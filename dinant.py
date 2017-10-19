@@ -288,7 +288,9 @@ _int = int
 int = maybe(any_of('+-')) + uint
 integer = int
 # NOTE: the order is important or the regexp stops at the first match
-float = either(maybe('-') + maybe(one_or_more(digits)) + then('.') + one_or_more(digits), integer + then('.'), integer)
+float = ( either(maybe(any_of('+-')) + maybe(one_or_more(digits)) + then('.') + one_or_more(digits),
+                 integer + then('.'),
+                 integer) )
 hex = one_or_more(any_of('0-9A-Fa-f'))
 hexa = hex
 # TODO: octal
@@ -434,6 +436,7 @@ def run_tests():
     test(float, '1942', ('1942', ))
     test(float, '-1942', ('-1942', ))
     # -?\d+ | -?\d+\. | (?:-)?(?:(?:\d)+)?\.(?:\d)+
+    test(float, '+1942.', ('+1942.', ))
     test(float, '-1942.', ('-1942.', ))
     test(float, '-1942.736', ('-1942.736', ))
     test(float, '-.736', ('-.736', ))
