@@ -44,6 +44,9 @@ class Dinant:
         else:
             # Dinant(Dinant('a')) == Dinant('a') but
             # id(Dinant('a')) != id(Dinant('a'))
+            # the leftmost protion accumulates all the other ones in its .string attr
+            # so we copy so we can reuse portions at will
+            # see __add__()
             self.strings = copy.copy(other.strings)
 
         if capture is False:
@@ -186,8 +189,8 @@ class Dinant:
 anything = Dinant('.', escape=False)
 
 
+# this is a common structure used below
 def wrap(left, middle, right):
-    # this is a common structure used below
     return Dinant(left, escape=False) + middle + Dinant(right, escape=False)
 
 
