@@ -196,13 +196,24 @@ def any_of(s):
     See https://docs.python.org/3/library/re.html#regular-expression-syntax ."""
     return wrap('[', Dinant(s, escape=False), ']')
 
+# another helper function
+def captures(kwargs):
+    return ('capture' in kwargs and kwargs['capture']) or 'name' in kwargs
 
-def either(*args):
+def either(*args, **kwargs):
     # TODO: this is the only point where we pre compact
-    return ( wrap('(?:', Dinant('|'.join([ str(Dinant(s) if isinstance(s, str) else s) for s in args ]), escape=False), ')') )
+    inner = Dinant('|'.join([ str(Dinant(s) if isinstance(s, str) else s) for s in args ]), escape=False)
+    # optimization: check if capturing
+    if captures(kwargs):
+        return capture(inner, **kwargs)
+    else:
+        return wrap('(?:', inner, ')')
 
 
-def capture(s, name=None):
+def capture(s, capture=True, name=None):
+    # ugh
+    name = name if name is not None else (capture if isinstance(capture, str) else None)
+
     if name is None:
         return wrap('(', Dinant(s), ')')
     else:
@@ -389,6 +400,9 @@ def run_tests():
 
     test(either('abc', 'def'), 'abc', ('abc', ))
     test(either('abc', 'def'), 'def', ('def', ))
+    test(either('abc', 'def', capture=True), 'abc', ('abc', ))
+    test(either('abc', 'def', capture='foo'), 'abc', ('abc', ))
+    test(either('abc', 'def', name='foo'), 'abc', ('abc', ))
 
     test(anything, 'def', ('d', ))
 
