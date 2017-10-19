@@ -290,7 +290,8 @@ integer = int
 # NOTE: the order is important or the regexp stops at the first match
 float = ( either(maybe(any_of('+-')) + maybe(one_or_more(digits)) + then('.') + one_or_more(digits),
                  integer + then('.'),
-                 integer) )
+                 integer) +
+          maybe(any_of('Ee') + maybe(any_of('+-')) + one_or_more(digits)) )
 hex = one_or_more(any_of('0-9A-Fa-f'))
 hexa = hex
 # TODO: octal
@@ -441,6 +442,15 @@ def run_tests():
     test(float, '-1942.736', ('-1942.736', ))
     test(float, '-.736', ('-.736', ))
     test(float, '.736', ('.736', ))
+
+    # exponential
+    test(float, '1942E1', ('1942E1', ))
+    test(float, '1942E+1', ('1942E+1', ))
+    test(float, '1942E-1', ('1942E-1', ))
+    test(float, '1942e1', ('1942e1', ))
+    test(float, '1942e+1', ('1942e+1', ))
+    test(float, '1942e-1', ('1942e-1', ))
+
 
     # TODO
     # test(hex, '0005da36'
