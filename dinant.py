@@ -428,6 +428,7 @@ def run_tests():
     ass((lookbehind('foo') + capture('bar')).search('foobar').groups(), ('bar', ))
 
     test(integer, '1942', ('1942', ))
+    test(integer, '+1942', ('+1942', ))
     test(integer, '-1942', ('-1942', ))
 
     test(float, '1942', ('1942', ))
