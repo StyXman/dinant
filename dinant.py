@@ -396,6 +396,8 @@ def run_tests():
     ass(str(then('[]')), '\[\]')
 
     test(any_of('a-z'), 'abc', ('a', ))
+    test(any_of('+-'), '+', ('+', ))
+    test(any_of('-+'), '+', ('+', ))
     test(zero_or_more(any_of('a-z')), 'abc', ('abc', ))
     test(zero_or_more(any_of('a-z')), '', ('', ))
     test(one_or_more(any_of('a-z')), '', None)
